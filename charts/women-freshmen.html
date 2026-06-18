@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Women Freshmen — 2026 MOKU</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+<style>html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:#fff}
+#wrap{height:100vh;padding:8px;box-sizing:border-box}</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<script>
+const CHART = {"title": "Women Freshmen", "regattas": ["Kai ʻEhitu", "Keauhou", "Kai ʻŌpua", "Kailana"], "dates": ["05-16", "05-23", "06-06", "06-13"], "fastest": [266.63, 261.01, 264.01, 257.33], "slowest": [318.81, 296.51, 307.42, 300.0], "teams": [{"name": "Kawaihae", "line": "#D32F2F", "point": "#FFFFFF", "emphasize": true, "times": [266.63, 261.01, 271.82, 268.63]}, {"name": "Kai Opua", "line": "#1565C0", "point": "#FFFFFF", "times": [280.87, 274.52, 268.92, 264.58]}, {"name": "Kai ʻEhitu", "line": "#D32F2F", "point": "#FFFFFF", "dash": true, "times": [282.24, 277.42, null, null]}, {"name": "Kamehameha - Hilo", "line": "#CBB994", "point": "#D32F2F", "times": [292.26, 296.51, 291.62, 291.25]}, {"name": "Keaukaha", "line": "#4FC3F7", "point": "#D4AF37", "times": [318.81, 289.73, 307.42, 294.7]}, {"name": "Keōua Hōnaunau", "line": "#FFF176", "point": "#D32F2F", "times": [272.29, 261.26, 264.01, 267.42]}, {"name": "Puna", "line": "#FBC02D", "point": "#2E7D32", "times": [276.7, 274.17, 266.87, 257.33]}, {"name": "Waikoloa", "line": "#7B1FA2", "point": "#FFFFFF", "times": [288.62, 287.54, 277.48, 300.0]}]};
+const THUMB = new URLSearchParams(location.search).has("thumb");
+function mmss(v){let m=Math.floor(v/60);let s=(v-m*60).toFixed(2).padStart(5,"0");return m+":"+s;}
+window.onload = function () {
+  const band = [
+    {label:"Fastest",data:CHART.fastest,borderColor:"rgba(150,150,150,0.5)",borderWidth:1,
+     pointStyle:false,fill:false,order:100,spanGaps:true},
+    {label:"Slowest",data:CHART.slowest,borderColor:"rgba(150,150,150,0.5)",borderWidth:1,
+     pointStyle:false,fill:"-1",backgroundColor:"rgba(170,170,170,0.45)",order:100,spanGaps:true},
+  ];
+  const GREY = "#b3b3b3";
+  const teams = CHART.teams.map(t => {
+    // In thumbnails: only Kawaihae (bold red); every other club is a thin grey line.
+    const lc = THUMB ? (t.emphasize ? "#D32F2F" : GREY) : t.line;
+    return {
+      label:t.name, data:t.times,
+      borderColor:lc, backgroundColor:lc,
+      pointBackgroundColor:THUMB?lc:t.line, pointBorderColor:THUMB?lc:(t.point||"#555"),
+      pointBorderWidth:THUMB?0:2,
+      borderDash:(!THUMB && t.dash)?[6,4]:[],
+      borderWidth:t.emphasize?4:(THUMB?1:2),
+      pointRadius:THUMB?(t.emphasize?2:0):(t.emphasize?5:3),
+      pointHoverRadius:t.emphasize?7:5,
+      pointStyle:"circle", fill:false, spanGaps:false, order:t.emphasize?0:1,
+    };
+  });
+
+  const labels = CHART.regattas.map((r,i) => [r, CHART.dates[i]]);
+  new Chart(document.getElementById("c"), {
+    type:"line",
+    data:{labels, datasets:[...band, ...teams]},
+    options:{
+      maintainAspectRatio:false,
+      animation:false,
+      interaction:{mode:"nearest", intersect:true},
+      plugins:{
+        title:{display:!THUMB, text:CHART.title+" — 2026 MOKU regattas", font:{size:18}},
+        legend:{display:!THUMB, labels:{filter:i=>i.text!=="Fastest"&&i.text!=="Slowest"}},
+        tooltip:{enabled:!THUMB, callbacks:{
+          title:items=>CHART.regattas[items[0].dataIndex]+" ("+CHART.dates[items[0].dataIndex]+")",
+          label:c=>c.dataset.label+": "+mmss(c.parsed.y),
+        }},
+      },
+      scales:{
+        x:{display:!THUMB, title:{display:!THUMB, text:"Regatta"}},
+        y:{display:!THUMB, title:{display:!THUMB, text:"Race time (min:sec)"},
+           ticks:{callback:v=>mmss(v)}},
+      },
+    },
+  });
+};
+</script>
+</body>
+</html>
