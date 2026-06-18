@@ -29,7 +29,6 @@ BASE = "https://www.hcrapaddler.com/"
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WWW = os.path.join(ROOT, "www")
 CACHE = os.path.join(ROOT, ".cache")
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 # --- club flag color name -> hex -------------------------------------------------
 COLORMAP = {
