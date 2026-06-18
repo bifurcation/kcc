@@ -27,7 +27,7 @@ import urllib.request
 
 BASE = "https://www.hcrapaddler.com/"
 ROOT = os.path.dirname(os.path.abspath(__file__))
-WWW = os.path.join(ROOT, "www")
+WWW = os.path.join(ROOT, "docs")
 CACHE = os.path.join(ROOT, ".cache")
 
 # --- club flag color name -> hex -------------------------------------------------
@@ -315,7 +315,7 @@ def main():
     os.makedirs(os.path.join(WWW, "charts"), exist_ok=True)
     os.makedirs(os.path.join(WWW, "thumbs"), exist_ok=True)
 
-    classifications = []  # (event_no, name, section, slug)
+    classifications = []  # (event_no, name, section, slug, data)
     for no in event_nos:
         # canonical classification name = first regatta that ran this event
         name = normalize_name(next(res[no]["name"] for (_, _, _, res) in completed
@@ -343,20 +343,19 @@ def main():
         html = PAGE.replace("__TITLE__", name).replace(
             "__DATA__", json.dumps(data, ensure_ascii=False))
         open(os.path.join(WWW, "charts", slug + ".html"), "w", encoding="utf-8").write(html)
-        classifications.append((no, name, section_of(name), slug))
+        classifications.append((no, name, section_of(name), slug, data))
 
     print("Wrote %d chart pages." % len(classifications))
 
-    # thumbnails via headless Chrome
+    # thumbnails via Node + chartjs-node-canvas
     if not no_thumbs:
         print("Rendering thumbnails ...")
-        for no, name, sec, slug in classifications:
-            src = "file://" + os.path.join(WWW, "charts", slug + ".html") + "?thumb=1"
+        script = os.path.join(ROOT, "render_thumb.js")
+        for no, name, sec, slug, data in classifications:
             out = os.path.join(WWW, "thumbs", slug + ".png")
             subprocess.run(
-                [CHROME, "--headless", "--disable-gpu", "--hide-scrollbars",
-                 "--screenshot=" + out, "--window-size=480,300",
-                 "--virtual-time-budget=2500", src],
+                ["node", script, out],
+                input=json.dumps(data, ensure_ascii=False).encode(),
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print("  %d thumbnails." % len(classifications))
 
@@ -367,7 +366,7 @@ def main():
 
 def write_index(classifications):
     by_sec = {s: [] for s in SECTIONS}
-    for no, name, sec, slug in classifications:
+    for no, name, sec, slug, *_ in classifications:
         by_sec[sec].append((no, name, slug))
 
     parts = ["""<!doctype html>

@@ -1,0 +1,8 @@
+{
+  "name": "hcra-stats",
+  "private": true,
+  "dependencies": {
+    "chart.js": "^4.4.9",
+    "chartjs-node-canvas": "^5.0.0"
+  }
+}
