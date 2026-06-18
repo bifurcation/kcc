@@ -27,6 +27,7 @@ import urllib.request
 
 BASE = "https://www.hcrapaddler.com/"
 ROOT = os.path.dirname(os.path.abspath(__file__))
+WWW = os.path.join(ROOT, "www")
 CACHE = os.path.join(ROOT, ".cache")
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
@@ -312,8 +313,8 @@ def main():
     event_nos = sorted({no for (_, _, _, res) in completed
                         for no, ev in res.items() if ev["clubs"]})
 
-    os.makedirs(os.path.join(ROOT, "charts"), exist_ok=True)
-    os.makedirs(os.path.join(ROOT, "thumbs"), exist_ok=True)
+    os.makedirs(os.path.join(WWW, "charts"), exist_ok=True)
+    os.makedirs(os.path.join(WWW, "thumbs"), exist_ok=True)
 
     classifications = []  # (event_no, name, section, slug)
     for no in event_nos:
@@ -342,7 +343,7 @@ def main():
         slug = slugify(name)
         html = PAGE.replace("__TITLE__", name).replace(
             "__DATA__", json.dumps(data, ensure_ascii=False))
-        open(os.path.join(ROOT, "charts", slug + ".html"), "w", encoding="utf-8").write(html)
+        open(os.path.join(WWW, "charts", slug + ".html"), "w", encoding="utf-8").write(html)
         classifications.append((no, name, section_of(name), slug))
 
     print("Wrote %d chart pages." % len(classifications))
@@ -351,8 +352,8 @@ def main():
     if not no_thumbs:
         print("Rendering thumbnails ...")
         for no, name, sec, slug in classifications:
-            src = "file://" + os.path.join(ROOT, "charts", slug + ".html") + "?thumb=1"
-            out = os.path.join(ROOT, "thumbs", slug + ".png")
+            src = "file://" + os.path.join(WWW, "charts", slug + ".html") + "?thumb=1"
+            out = os.path.join(WWW, "thumbs", slug + ".png")
             subprocess.run(
                 [CHROME, "--headless", "--disable-gpu", "--hide-scrollbars",
                  "--screenshot=" + out, "--window-size=480,300",
@@ -406,7 +407,8 @@ def write_index(classifications):
                 % (PASTEL[sec], slug, name, slug, name))
         parts.append("</div>\n")
     parts.append("</body>\n</html>\n")
-    open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8").write("".join(parts))
+    os.makedirs(WWW, exist_ok=True)
+    open(os.path.join(WWW, "index.html"), "w", encoding="utf-8").write("".join(parts))
 
 
 if __name__ == "__main__":
