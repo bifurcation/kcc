@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Girls 13 — 2026 MOKU</title>
+<title>Girls 13 — KCC 2026</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 <style>html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:#fff}
-#wrap{height:100vh;padding:8px;box-sizing:border-box}</style>
+#wrap{height:100%;padding:8px;box-sizing:border-box}</style>
 </head>
 <body>
-<div id="wrap"><canvas id="c"></canvas></div>
+<div id="wrap"><canvas id="c" style="width:100%"></canvas></div>
 <script>
 const CHART = {"title": "Girls 13", "regattas": ["Kai ʻEhitu", "Keauhou", "Kai ʻŌpua", "Kailana"], "dates": ["05-16", "05-23", "06-06", "06-13"], "fastest": [125.95, 124.54, 121.57, 118.3], "slowest": [165.93, 162.95, 139.03, 159.05], "teams": [{"name": "Kawaihae", "line": "#D32F2F", "point": "#FFFFFF", "emphasize": true, "times": [136.01, 141.09, 134.38, 133.53]}, {"name": "Hoemana", "line": "#8D5524", "point": "#000000", "times": [null, null, null, 140.91]}, {"name": "Hui Waʻa ʻO Waiākea", "line": "#1565C0", "point": "#FBC02D", "times": [145.31, 147.94, 135.92, 131.96]}, {"name": "Kai Opua", "line": "#1565C0", "point": "#FFFFFF", "times": [125.95, 124.54, 121.57, 118.3]}, {"name": "Kai ʻEhitu", "line": "#D32F2F", "point": "#FFFFFF", "dash": true, "times": [126.36, 132.63, 126.47, 121.73]}, {"name": "Keauhou", "line": "#2E7D32", "point": "#FFFFFF", "times": [165.93, 162.95, null, null]}, {"name": "Keaukaha", "line": "#4FC3F7", "point": "#D4AF37", "times": [158.41, null, null, 159.05]}, {"name": "Keōua Hōnaunau", "line": "#FFF176", "point": "#D32F2F", "times": [141.42, null, null, null]}, {"name": "Na Waʻa Hanakahi", "line": "#D32F2F", "point": "#000000", "times": [140.64, 145.16, 137.29, 134.18]}, {"name": "Paddlers of Laka", "line": "#1565C0", "point": "#FFFFFF", "dash": true, "times": [136.29, 144.16, 132.02, 129.03]}, {"name": "Puna", "line": "#FBC02D", "point": "#2E7D32", "times": [139.57, 146.91, 139.03, 138.29]}, {"name": "Waikoloa", "line": "#7B1FA2", "point": "#FFFFFF", "times": [153.38, null, null, 134.93]}]};
 const THUMB = new URLSearchParams(location.search).has("thumb");
@@ -42,11 +42,11 @@ window.onload = function () {
     type:"line",
     data:{labels, datasets:[...band, ...teams]},
     options:{
-      maintainAspectRatio:false,
+      responsive:true, maintainAspectRatio:true, aspectRatio:1.5,
       animation:false,
       interaction:{mode:"nearest", intersect:true},
       plugins:{
-        title:{display:!THUMB, text:CHART.title+" — 2026 MOKU regattas", font:{size:18}},
+        title:{display:!THUMB, text:"KCC — "+CHART.title+" — 2026 regattas", font:{size:18}},
         legend:{display:!THUMB, labels:{filter:i=>i.text!=="Fastest"&&i.text!=="Slowest"}},
         tooltip:{enabled:!THUMB, callbacks:{
           title:items=>CHART.regattas[items[0].dataIndex]+" ("+CHART.dates[items[0].dataIndex]+")",

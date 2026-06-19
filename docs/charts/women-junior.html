@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Women Junior — 2026 MOKU</title>
+<title>Women Junior — KCC 2026</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 <style>html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:#fff}
-#wrap{height:100vh;padding:8px;box-sizing:border-box}</style>
+#wrap{height:100%;padding:8px;box-sizing:border-box}</style>
 </head>
 <body>
-<div id="wrap"><canvas id="c"></canvas></div>
+<div id="wrap"><canvas id="c" style="width:100%"></canvas></div>
 <script>
 const CHART = {"title": "Women Junior", "regattas": ["Kai ʻEhitu", "Keauhou", "Kai ʻŌpua", "Kailana"], "dates": ["05-16", "05-23", "06-06", "06-13"], "fastest": [589.35, 540.56, 547.08, 558.46], "slowest": [679.57, 628.87, 647.65, 624.5], "teams": [{"name": "Kai Opua", "line": "#1565C0", "point": "#FFFFFF", "times": [597.45, 544.14, 554.13, 558.46]}, {"name": "Kai ʻEhitu", "line": "#D32F2F", "point": "#FFFFFF", "dash": true, "times": [632.75, 560.9, 585.84, 599.54]}, {"name": "Kamehameha - Hilo", "line": "#CBB994", "point": "#D32F2F", "times": [599.57, 569.9, 562.91, 563.72]}, {"name": "Keaukaha", "line": "#4FC3F7", "point": "#D4AF37", "times": [null, 628.87, 647.65, 624.5]}, {"name": "Keōua Hōnaunau", "line": "#FFF176", "point": "#D32F2F", "times": [679.57, null, null, null]}, {"name": "Puna", "line": "#FBC02D", "point": "#2E7D32", "times": [589.35, 540.56, 547.08, 587.51]}]};
 const THUMB = new URLSearchParams(location.search).has("thumb");
@@ -42,11 +42,11 @@ window.onload = function () {
     type:"line",
     data:{labels, datasets:[...band, ...teams]},
     options:{
-      maintainAspectRatio:false,
+      responsive:true, maintainAspectRatio:true, aspectRatio:1.5,
       animation:false,
       interaction:{mode:"nearest", intersect:true},
       plugins:{
-        title:{display:!THUMB, text:CHART.title+" — 2026 MOKU regattas", font:{size:18}},
+        title:{display:!THUMB, text:"KCC — "+CHART.title+" — 2026 regattas", font:{size:18}},
         legend:{display:!THUMB, labels:{filter:i=>i.text!=="Fastest"&&i.text!=="Slowest"}},
         tooltip:{enabled:!THUMB, callbacks:{
           title:items=>CHART.regattas[items[0].dataIndex]+" ("+CHART.dates[items[0].dataIndex]+")",

@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Boys 12 — 2026 MOKU</title>
+<title>Boys 12 — KCC 2026</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 <style>html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:#fff}
-#wrap{height:100vh;padding:8px;box-sizing:border-box}</style>
+#wrap{height:100%;padding:8px;box-sizing:border-box}</style>
 </head>
 <body>
-<div id="wrap"><canvas id="c"></canvas></div>
+<div id="wrap"><canvas id="c" style="width:100%"></canvas></div>
 <script>
 const CHART = {"title": "Boys 12", "regattas": ["Kai ʻEhitu", "Keauhou", "Kai ʻŌpua", "Kailana"], "dates": ["05-16", "05-23", "06-06", "06-13"], "fastest": [111.07, 129.72, 123.98, 119.2], "slowest": [165.96, 154.06, 149.3, 141.34], "teams": [{"name": "Kawaihae", "line": "#D32F2F", "point": "#FFFFFF", "emphasize": true, "times": [129.46, 148.44, 128.96, 131.51]}, {"name": "Kai Opua", "line": "#1565C0", "point": "#FFFFFF", "times": [122.85, 154.06, 142.36, 138.68]}, {"name": "Kai ʻEhitu", "line": "#D32F2F", "point": "#FFFFFF", "dash": true, "times": [111.07, 129.72, 123.98, 119.2]}, {"name": "Keaukaha", "line": "#4FC3F7", "point": "#D4AF37", "times": [null, 136.34, 149.3, 141.34]}, {"name": "Keōua Hōnaunau", "line": "#FFF176", "point": "#D32F2F", "times": [159.43, 152.95, 139.48, 133.32]}, {"name": "Na Waʻa Hanakahi", "line": "#D32F2F", "point": "#000000", "times": [null, null, 145.66, 136.28]}, {"name": "Puna", "line": "#FBC02D", "point": "#2E7D32", "times": [165.96, 152.38, 140.34, 135.23]}]};
 const THUMB = new URLSearchParams(location.search).has("thumb");
@@ -42,11 +42,11 @@ window.onload = function () {
     type:"line",
     data:{labels, datasets:[...band, ...teams]},
     options:{
-      maintainAspectRatio:false,
+      responsive:true, maintainAspectRatio:true, aspectRatio:1.5,
       animation:false,
       interaction:{mode:"nearest", intersect:true},
       plugins:{
-        title:{display:!THUMB, text:CHART.title+" — 2026 MOKU regattas", font:{size:18}},
+        title:{display:!THUMB, text:"KCC — "+CHART.title+" — 2026 regattas", font:{size:18}},
         legend:{display:!THUMB, labels:{filter:i=>i.text!=="Fastest"&&i.text!=="Slowest"}},
         tooltip:{enabled:!THUMB, callbacks:{
           title:items=>CHART.regattas[items[0].dataIndex]+" ("+CHART.dates[items[0].dataIndex]+")",

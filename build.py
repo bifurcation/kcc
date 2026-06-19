@@ -208,18 +208,32 @@ def slugify(name):
     return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", name.lower())).strip("-")
 
 
+def base_label(name):
+    """Strip gender prefix so Men/Women/Mixed classifications share an X-axis label."""
+    n = re.sub(r'\bGolden\s+', '', name)                      # "Golden Masters (55)" → "Masters (55)"
+    n = re.sub(r'^Senior\s+(Men|Women)\s+', 'Senior ', n)     # "Senior Men Masters" → "Senior Masters"
+    n = re.sub(r'^(Men|Women|Mixed|Girls|Boys)\s+', '', n)     # strip leading gender/section word
+    n = re.sub(r'^Boys and Girls\s+', '', n)                   # "Boys and Girls 12" → "12"
+    n = re.sub(r'\s*&\s*Under\b', '', n)                       # "18 & Under" → "18"
+    n = re.sub(r'(?:Senior\s+)?Masters?\s*', '', n)            # "Masters (40)" → "(40)"
+    n = re.sub(r'[()]', '', n)                                  # "(40)" → "40", "(65)" → "65"
+    n = re.sub(r'\s*yrs\b', '', n, flags=re.I)                 # "60 yrs" → "60"
+    n = re.sub(r'^Men and Women$', 'Open Mixed', n)
+    return n.strip()
+
+
 # --- chart page template ---------------------------------------------------------
 PAGE = """<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>__TITLE__ — 2026 MOKU</title>
+<title>__TITLE__ — KCC 2026</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 <style>html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:#fff}
-#wrap{height:100vh;padding:8px;box-sizing:border-box}</style>
+#wrap{height:100%;padding:8px;box-sizing:border-box}</style>
 </head>
 <body>
-<div id="wrap"><canvas id="c"></canvas></div>
+<div id="wrap"><canvas id="c" style="width:100%"></canvas></div>
 <script>
 const CHART = __DATA__;
 const THUMB = new URLSearchParams(location.search).has("thumb");
@@ -253,11 +267,11 @@ window.onload = function () {
     type:"line",
     data:{labels, datasets:[...band, ...teams]},
     options:{
-      maintainAspectRatio:false,
+      responsive:true, maintainAspectRatio:true, aspectRatio:1.5,
       animation:false,
       interaction:{mode:"nearest", intersect:true},
       plugins:{
-        title:{display:!THUMB, text:CHART.title+" — 2026 MOKU regattas", font:{size:18}},
+        title:{display:!THUMB, text:"KCC — "+CHART.title+" — 2026 regattas", font:{size:18}},
         legend:{display:!THUMB, labels:{filter:i=>i.text!=="Fastest"&&i.text!=="Slowest"}},
         tooltip:{enabled:!THUMB, callbacks:{
           title:items=>CHART.regattas[items[0].dataIndex]+" ("+CHART.dates[items[0].dataIndex]+")",
@@ -276,6 +290,174 @@ window.onload = function () {
 </body>
 </html>
 """
+
+# --- summary chart template -------------------------------------------------------
+SUMMARY_PAGE = """<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KCC 2026 — Season Overview</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+<style>html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:#fff}
+#wrap{height:100%;padding:8px;box-sizing:border-box}</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" style="width:100%"></canvas></div>
+<script>
+const SUMMARY = __SUMMARY_DATA__;
+const THUMB = new URLSearchParams(location.search).has("thumb");
+function mmss(v){let m=Math.floor(v/60);let s=(v-m*60).toFixed(2).padStart(5,"0");return m+":"+s;}
+
+const errorBarPlugin = {
+  id:"errorBars",
+  afterDatasetsDraw(chart) {
+    const ctx = chart.ctx;
+    chart.data.datasets.forEach((ds, di) => {
+      if (!ds.errorBars) return;
+      const meta = chart.getDatasetMeta(di);
+      if (meta.hidden) return;
+      meta.data.forEach(pt => {
+        if (!pt || isNaN(pt.x) || isNaN(pt.y)) return;
+        const eb = ds.errorBars[Math.round(chart.scales.x.getValueForPixel(pt.x))];
+        if (!eb) return;
+        const x = pt.x;
+        const yLo = chart.scales.y.getPixelForValue(eb.lo);
+        const yHi = chart.scales.y.getPixelForValue(eb.hi);
+        const cap = THUMB ? 3 : 5;
+        ctx.save();
+        ctx.strokeStyle = ds.borderColor;
+        ctx.lineWidth = THUMB ? 1 : 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, yLo); ctx.lineTo(x, yHi);
+        ctx.moveTo(x-cap, yLo); ctx.lineTo(x+cap, yLo);
+        ctx.moveTo(x-cap, yHi); ctx.lineTo(x+cap, yHi);
+        ctx.stroke();
+        ctx.restore();
+      });
+    });
+  }
+};
+
+window.onload = function() {
+  const datasets = SUMMARY.datasets.map(ds => ({
+    label: ds.label, data: ds.data.filter(p => p !== null), errorBars: ds.errorBars,
+    borderColor: ds.borderColor, backgroundColor: ds.borderColor,
+    pointRadius: THUMB ? 3 : 5, pointHoverRadius: 7, pointStyle: "circle",
+  }));
+  new Chart(document.getElementById("c"), {
+    type: "scatter",
+    data: {datasets},
+    options: {
+      responsive: true, maintainAspectRatio: true, aspectRatio: 1.5, animation: false,
+      interaction: {mode:"nearest", intersect:true},
+      plugins: {
+        title: {display:!THUMB, text:"KCC 2026 — Median Finish Times by Classification", font:{size:18}},
+        legend: {display:!THUMB},
+        tooltip: {enabled:!THUMB, callbacks:{
+          title: items => SUMMARY.labels[Math.round(items[0].parsed.x)],
+          label: c => {
+            const eb = c.dataset.errorBars[Math.round(c.parsed.x)];
+            const med = c.dataset.label + ": " + mmss(c.parsed.y);
+            return eb ? med + "  (" + mmss(eb.lo) + " – " + mmss(eb.hi) + ")" : med;
+          },
+        }},
+      },
+      scales: {
+        x: {
+          display:!THUMB, type:"linear",
+          min:-0.5, max:SUMMARY.labels.length-0.5,
+          afterBuildTicks(axis) {
+            axis.ticks = Array.from({length:SUMMARY.labels.length}, (_,i) => ({value:i}));
+          },
+          ticks:{
+            callback: v => SUMMARY.labels[v] || "",
+            maxRotation:45, minRotation:45, font:{size:11},
+          },
+        },
+        y: {display:!THUMB, title:{display:!THUMB, text:"Finish time (min:sec)"},
+            min:0, max:SUMMARY.yMax,
+            ticks:{stepSize:15, callback:v=>mmss(v)}},
+      },
+    },
+    plugins: [errorBarPlugin],
+  });
+};
+</script>
+</body>
+</html>
+"""
+
+
+def build_summary(classifications):
+    """Build data for the cross-classification summary scatter chart (all sections)."""
+    SERIES_DEF = [
+        ("Men",   lambda name, sec: sec == "Men"   or (sec == "Keiki" and "boy"  in name.lower() and "mixed" not in name.lower())),
+        ("Women", lambda name, sec: sec == "Women" or (sec == "Keiki" and "girl" in name.lower() and "mixed" not in name.lower())),
+        ("Mixed", lambda name, sec: "mixed" in name.lower()),
+    ]
+    COLORS   = {"Men": "#1565C0", "Women": "#AD1457", "Mixed": "#2E7D32"}
+    OFFSETS  = {"Men": 0.0,       "Women": 0.15,      "Mixed": 0.30}
+
+    # Ordered unique X labels: only include positions covered by an active series
+    all_items = []
+    for sec in SECTIONS:
+        sec_items = sorted([(no, name, s, slug, data)
+                            for no, name, s, slug, data in classifications if s == sec],
+                           key=lambda x: section_sort_key(x[1], sec))
+        all_items.extend(sec_items)
+
+    active = [pred for _, pred in SERIES_DEF]
+    seen, labels = {}, []
+    for no, name, sec, slug, data in all_items:
+        if not any(p(name, sec) for p in active):
+            continue
+        bl = base_label(name)
+        if bl not in seen:
+            seen[bl] = len(labels)
+            labels.append(bl)
+
+    datasets = []
+    for ser_name, predicate in SERIES_DEF:
+        data_pts   = [None] * len(labels)
+        error_bars = [None] * len(labels)
+        offset = OFFSETS[ser_name]
+        for no, name, sec, slug, data in all_items:
+            if not predicate(name, sec):
+                continue
+            n = name.lower()
+            if "novice b" in n:
+                mult = 2.10
+            elif sec == "Keiki":
+                age = int(m2.group(1)) if (m2 := re.search(r'(\d+)', name)) else 999
+                mult = 2.10 if age <= 14 else 1.0
+            elif "junior" in n:
+                mult = 0.5
+            else:
+                mult = 1.0
+            times = sorted(t * mult for team in data["teams"] if team.get("emphasize")
+                           for t in team["times"] if t is not None)
+            if not times:
+                continue
+            n = len(times)
+            med = times[n // 2] if n % 2 else (times[n // 2 - 1] + times[n // 2]) / 2
+            bl = base_label(name)
+            idx = seen[bl]
+            x_off = 0.0 if bl == "Open Mixed" else offset
+            data_pts[idx]   = {"x": round(idx + x_off, 3), "y": round(med, 2)}
+            error_bars[idx] = {"lo": round(times[0], 2), "hi": round(times[-1], 2)}
+        datasets.append({
+            "label": ser_name, "data": data_pts, "errorBars": error_bars,
+            "borderColor": COLORS[ser_name], "backgroundColor": COLORS[ser_name],
+        })
+
+    all_lo = [eb["lo"] for ds in datasets for eb in ds["errorBars"] if eb]
+    all_hi = [eb["hi"] for ds in datasets for eb in ds["errorBars"] if eb]
+    pad = (max(all_hi) - min(all_lo)) * 0.05
+    y_min = round(min(all_lo) - pad, 1)
+    y_max = round(max(all_hi) + pad, 1)
+
+    return {"labels": labels, "datasets": datasets, "yMin": y_min, "yMax": y_max}
 
 
 def main():
@@ -359,6 +541,18 @@ def main():
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print("  %d thumbnails." % len(classifications))
 
+    # summary chart
+    summary = build_summary(classifications)
+    open(os.path.join(WWW, "charts", "summary.html"), "w", encoding="utf-8").write(
+        SUMMARY_PAGE.replace("__SUMMARY_DATA__", json.dumps(summary, ensure_ascii=False)))
+    if not no_thumbs:
+        subprocess.run(
+            ["node", os.path.join(ROOT, "render_summary_thumb.js"),
+             os.path.join(WWW, "thumbs", "summary.png")],
+            input=json.dumps(summary, ensure_ascii=False).encode(),
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print("Wrote summary chart.")
+
     # index gallery
     write_index(classifications)
     print("Wrote index.html")
@@ -373,16 +567,12 @@ def write_index(classifications):
 <html>
 <head>
 <meta charset="utf-8">
-<<<<<<< Updated upstream
-<title>MOKU 2026 — Race-Time Charts</title>
-=======
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KCC Regatta Results 2026</title>
->>>>>>> Stashed changes
+<title>Kawaihae Canoe Club — 2026 Results</title>
 <style>
   body{font-family:Arial,Helvetica,sans-serif;margin:16px;color:#222;background:#fafafa}
   .logo{text-align:center;margin:8px 0 28px}
-  .logo img{max-width:241px;height:auto}
+  .logo img{max-width:min(241px,25vw);height:auto}
   h2{margin:28px 0 12px;border-bottom:2px solid #ddd;padding-bottom:4px}
   .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
   @media(min-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}}
@@ -393,8 +583,8 @@ def write_index(classifications):
   .cell:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.25)}
   .cell .name{font-weight:bold;font-size:13px;margin-bottom:8px;text-align:center;
               line-height:1.3}
-  .cell img{width:100%;height:auto;display:block;border-radius:6px;background:#fff;
-            border:1px solid rgba(0,0,0,.08)}
+  .cell img{width:100%;aspect-ratio:3/2;object-fit:contain;display:block;border-radius:6px;
+            background:#fff;border:1px solid rgba(0,0,0,.08)}
 </style>
 </head>
 <body>
@@ -412,6 +602,13 @@ def write_index(classifications):
                 '<img src="thumbs/%s.png" alt="%s" loading="lazy"></a>\n'
                 % (PASTEL[sec], slug, name, slug, name))
         parts.append("</div>\n")
+    parts.append(
+        '<h2>Season Overview</h2>\n'
+        '<a class="cell" style="background:#EEE8F8;display:block;max-width:640px" '
+        'href="charts/summary.html">'
+        '<div class="name">Median Finish Times by Classification</div>'
+        '<img src="thumbs/summary.png" alt="Season Overview" loading="lazy"></a>\n'
+    )
     parts.append("</body>\n</html>\n")
     os.makedirs(WWW, exist_ok=True)
     open(os.path.join(WWW, "index.html"), "w", encoding="utf-8").write("".join(parts))
