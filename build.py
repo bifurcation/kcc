@@ -105,7 +105,7 @@ def parse_results(html):
                 if secs is not None:
                     clubs[full] = secs
             elif ps.startswith("DQ"):
-                marks[full] = ["dq", secs]
+                marks[full] = [ps, secs]
             elif ps.startswith("SCR"):
                 marks[full] = ["scr", None]
         out[int(no)] = {"name": re.sub(r"\s+", " ", name).strip(),
@@ -246,19 +246,35 @@ window.onload = function () {
      pointStyle:false,fill:"-1",backgroundColor:"rgba(170,170,170,0.45)",order:100,spanGaps:true},
   ];
   const GREY = "#b3b3b3";
+  const dqs = CHART.dqs || [];
   const teams = CHART.teams.map(t => {
-    // In thumbnails: only Kawaihae (bold red); every other club is a thin grey line.
     const lc = THUMB ? (t.emphasize ? "#D32F2F" : GREY) : t.line;
+    if (!t.emphasize) {
+      return {
+        label:t.name, data:t.times,
+        borderColor:lc, backgroundColor:lc,
+        pointBackgroundColor:THUMB?lc:t.line, pointBorderColor:THUMB?lc:(t.point||"#555"),
+        pointBorderWidth:THUMB?0:2,
+        borderDash:(!THUMB && t.dash)?[6,4]:[],
+        borderWidth:THUMB?1:2,
+        pointRadius:THUMB?0:3, pointHoverRadius:5,
+        pointStyle:"circle", fill:false, spanGaps:false, order:1,
+      };
+    }
+    const dqIdx = new Set(dqs.map((d,i) => d!=null?i:-1).filter(i=>i>=0));
+    const data = t.times.map((v,i) => v!==null ? v : (dqs[i]!=null ? dqs[i][0] : null));
     return {
-      label:t.name, data:t.times,
+      label:t.name, data,
       borderColor:lc, backgroundColor:lc,
-      pointBackgroundColor:THUMB?lc:t.line, pointBorderColor:THUMB?lc:(t.point||"#555"),
-      pointBorderWidth:THUMB?0:2,
-      borderDash:(!THUMB && t.dash)?[6,4]:[],
-      borderWidth:t.emphasize?4:(THUMB?1:2),
-      pointRadius:THUMB?(t.emphasize?2:0):(t.emphasize?5:3),
-      pointHoverRadius:t.emphasize?7:5,
-      pointStyle:"circle", fill:false, spanGaps:false, order:t.emphasize?0:1,
+      pointBackgroundColor:data.map((v,i) => dqIdx.has(i) ? "transparent" : (THUMB?lc:t.line)),
+      pointBorderColor:data.map((v,i) => dqIdx.has(i) ? lc : (THUMB?lc:(t.point||"#555"))),
+      pointBorderWidth:data.map((v,i) => dqIdx.has(i) ? 2 : (THUMB?0:2)),
+      borderDash:[],
+      borderWidth:4,
+      pointRadius:data.map((v,i) => v===null?0 : dqIdx.has(i)?(THUMB?4:7):(THUMB?2:5)),
+      pointHoverRadius:data.map((v,i) => dqIdx.has(i)?9:7),
+      pointStyle:data.map((v,i) => dqIdx.has(i)?"crossRot":"circle"),
+      fill:false, spanGaps:false, order:0,
     };
   });
 
@@ -275,7 +291,7 @@ window.onload = function () {
         legend:{display:!THUMB, labels:{filter:i=>i.text!=="Fastest"&&i.text!=="Slowest"}},
         tooltip:{enabled:!THUMB, callbacks:{
           title:items=>CHART.regattas[items[0].dataIndex]+" ("+CHART.dates[items[0].dataIndex]+")",
-          label:c=>c.dataset.label+": "+mmss(c.parsed.y),
+          label:c=>{const d=(CHART.dqs||[])[c.dataIndex];const dq=c.dataset.order===0&&d!=null;return c.dataset.label+": "+mmss(c.parsed.y)+(dq?" ("+d[1]+")":"");},
         }},
       },
       scales:{
@@ -425,27 +441,26 @@ def build_summary(classifications):
         for no, name, sec, slug, data in all_items:
             if not predicate(name, sec):
                 continue
-            n = name.lower()
-            if "novice b" in n:
+            nm = name.lower()
+            if "novice b" in nm:
                 mult = 2.10
             elif sec == "Keiki":
                 age = int(m2.group(1)) if (m2 := re.search(r'(\d+)', name)) else 999
                 mult = 2.10 if age <= 14 else 1.0
-            elif "junior" in n:
+            elif "junior" in nm:
                 mult = 0.5
             else:
                 mult = 1.0
-            times = sorted(t * mult for team in data["teams"] if team.get("emphasize")
-                           for t in team["times"] if t is not None)
-            if not times:
-                continue
-            n = len(times)
-            med = times[n // 2] if n % 2 else (times[n // 2 - 1] + times[n // 2]) / 2
             bl = base_label(name)
             idx = seen[bl]
             x_off = 0.0 if bl == "Open Mixed" else offset
-            data_pts[idx]   = {"x": round(idx + x_off, 3), "y": round(med, 2)}
-            error_bars[idx] = {"lo": round(times[0], 2), "hi": round(times[-1], 2)}
+            times = sorted(t * mult for team in data["teams"] if team.get("emphasize")
+                           for t in team["times"] if t is not None)
+            if times:
+                nt = len(times)
+                med = times[nt // 2] if nt % 2 else (times[nt // 2 - 1] + times[nt // 2]) / 2
+                data_pts[idx]   = {"x": round(idx + x_off, 3), "y": round(med, 2)}
+                error_bars[idx] = {"lo": round(times[0], 2), "hi": round(times[-1], 2)}
         datasets.append({
             "label": ser_name, "data": data_pts, "errorBars": error_bars,
             "borderColor": COLORS[ser_name], "backgroundColor": COLORS[ser_name],
@@ -519,8 +534,15 @@ def main():
             fastest.append(min(vals) if vals else None)
             slowest.append(max(vals) if vals else None)
 
+        kcc_dqs = []
+        for (_, _, _, res) in completed:
+            marks = res.get(no, {}).get("marks", {})
+            entry = next(((secs, kind) for club, (kind, secs) in marks.items()
+                          if club.startswith("Kawaihae") and kind.startswith("DQ") and secs is not None),
+                         None)
+            kcc_dqs.append(list(entry) if entry else None)
         data = {"title": name, "regattas": reg_short, "dates": reg_dates,
-                "fastest": fastest, "slowest": slowest, "teams": teams}
+                "fastest": fastest, "slowest": slowest, "teams": teams, "dqs": kcc_dqs}
         slug = slugify(name)
         html = PAGE.replace("__TITLE__", name).replace(
             "__DATA__", json.dumps(data, ensure_ascii=False))

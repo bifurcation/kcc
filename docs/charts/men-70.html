@@ -10,7 +10,7 @@
 <body>
 <div id="wrap"><canvas id="c" style="width:100%"></canvas></div>
 <script>
-const CHART = {"title": "Men (70)", "regattas": ["Kai ʻEhitu", "Keauhou", "Kai ʻŌpua", "Kailana"], "dates": ["05-16", "05-23", "06-06", "06-13"], "fastest": [274.59, 274.5, 265.59, 249.12], "slowest": [304.63, 280.46, 284.74, 277.12], "teams": [{"name": "Kai ʻEhitu", "line": "#D32F2F", "point": "#FFFFFF", "dash": true, "times": [281.28, 274.5, 269.92, 265.07]}, {"name": "Keauhou", "line": "#2E7D32", "point": "#FFFFFF", "times": [304.63, 280.46, 284.74, 277.12]}, {"name": "Keaukaha", "line": "#4FC3F7", "point": "#D4AF37", "times": [274.59, 275.23, 265.59, 249.12]}]};
+const CHART = {"title": "Men (70)", "regattas": ["Kai ʻEhitu", "Keauhou", "Kai ʻŌpua", "Kailana"], "dates": ["05-16", "05-23", "06-06", "06-13"], "fastest": [274.59, 274.5, 265.59, 249.12], "slowest": [304.63, 280.46, 284.74, 277.12], "teams": [{"name": "Kai ʻEhitu", "line": "#D32F2F", "point": "#FFFFFF", "dash": true, "times": [281.28, 274.5, 269.92, 265.07]}, {"name": "Keauhou", "line": "#2E7D32", "point": "#FFFFFF", "times": [304.63, 280.46, 284.74, 277.12]}, {"name": "Keaukaha", "line": "#4FC3F7", "point": "#D4AF37", "times": [274.59, 275.23, 265.59, 249.12]}], "dqs": [null, null, null, null]};
 const THUMB = new URLSearchParams(location.search).has("thumb");
 function mmss(v){let m=Math.floor(v/60);let s=(v-m*60).toFixed(2).padStart(5,"0");return m+":"+s;}
 window.onload = function () {
@@ -21,19 +21,35 @@ window.onload = function () {
      pointStyle:false,fill:"-1",backgroundColor:"rgba(170,170,170,0.45)",order:100,spanGaps:true},
   ];
   const GREY = "#b3b3b3";
+  const dqs = CHART.dqs || [];
   const teams = CHART.teams.map(t => {
-    // In thumbnails: only Kawaihae (bold red); every other club is a thin grey line.
     const lc = THUMB ? (t.emphasize ? "#D32F2F" : GREY) : t.line;
+    if (!t.emphasize) {
+      return {
+        label:t.name, data:t.times,
+        borderColor:lc, backgroundColor:lc,
+        pointBackgroundColor:THUMB?lc:t.line, pointBorderColor:THUMB?lc:(t.point||"#555"),
+        pointBorderWidth:THUMB?0:2,
+        borderDash:(!THUMB && t.dash)?[6,4]:[],
+        borderWidth:THUMB?1:2,
+        pointRadius:THUMB?0:3, pointHoverRadius:5,
+        pointStyle:"circle", fill:false, spanGaps:false, order:1,
+      };
+    }
+    const dqIdx = new Set(dqs.map((d,i) => d!=null?i:-1).filter(i=>i>=0));
+    const data = t.times.map((v,i) => v!==null ? v : (dqs[i]!=null ? dqs[i][0] : null));
     return {
-      label:t.name, data:t.times,
+      label:t.name, data,
       borderColor:lc, backgroundColor:lc,
-      pointBackgroundColor:THUMB?lc:t.line, pointBorderColor:THUMB?lc:(t.point||"#555"),
-      pointBorderWidth:THUMB?0:2,
-      borderDash:(!THUMB && t.dash)?[6,4]:[],
-      borderWidth:t.emphasize?4:(THUMB?1:2),
-      pointRadius:THUMB?(t.emphasize?2:0):(t.emphasize?5:3),
-      pointHoverRadius:t.emphasize?7:5,
-      pointStyle:"circle", fill:false, spanGaps:false, order:t.emphasize?0:1,
+      pointBackgroundColor:data.map((v,i) => dqIdx.has(i) ? "transparent" : (THUMB?lc:t.line)),
+      pointBorderColor:data.map((v,i) => dqIdx.has(i) ? lc : (THUMB?lc:(t.point||"#555"))),
+      pointBorderWidth:data.map((v,i) => dqIdx.has(i) ? 2 : (THUMB?0:2)),
+      borderDash:[],
+      borderWidth:4,
+      pointRadius:data.map((v,i) => v===null?0 : dqIdx.has(i)?(THUMB?4:7):(THUMB?2:5)),
+      pointHoverRadius:data.map((v,i) => dqIdx.has(i)?9:7),
+      pointStyle:data.map((v,i) => dqIdx.has(i)?"crossRot":"circle"),
+      fill:false, spanGaps:false, order:0,
     };
   });
 
@@ -50,7 +66,7 @@ window.onload = function () {
         legend:{display:!THUMB, labels:{filter:i=>i.text!=="Fastest"&&i.text!=="Slowest"}},
         tooltip:{enabled:!THUMB, callbacks:{
           title:items=>CHART.regattas[items[0].dataIndex]+" ("+CHART.dates[items[0].dataIndex]+")",
-          label:c=>c.dataset.label+": "+mmss(c.parsed.y),
+          label:c=>{const d=(CHART.dqs||[])[c.dataIndex];const dq=c.dataset.order===0&&d!=null;return c.dataset.label+": "+mmss(c.parsed.y)+(dq?" ("+d[1]+")":"");},
         }},
       },
       scales:{

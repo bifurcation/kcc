@@ -10,7 +10,7 @@
 <body>
 <div id="wrap"><canvas id="c" style="width:100%"></canvas></div>
 <script>
-const CHART = {"title": "Boys 16 & Under", "regattas": ["Kai ʻEhitu", "Keauhou", "Kai ʻŌpua", "Kailana"], "dates": ["05-16", "05-23", "06-06", "06-13"], "fastest": [225.27, 225.08, 233.77, 238.06], "slowest": [320.47, 313.81, 302.47, 299.68], "teams": [{"name": "Kawaihae", "line": "#D32F2F", "point": "#FFFFFF", "emphasize": true, "times": [256.3, 260.43, 255.18, 277.07]}, {"name": "Hui Waʻa ʻO Waiākea", "line": "#1565C0", "point": "#FBC02D", "times": [282.06, 275.34, 272.81, 268.48]}, {"name": "Kai ʻEhitu", "line": "#D32F2F", "point": "#FFFFFF", "dash": true, "times": [225.27, 225.08, 233.77, 238.06]}, {"name": "Kamehameha - Hilo", "line": "#CBB994", "point": "#D32F2F", "times": [286.87, 282.41, 275.74, 279.63]}, {"name": "Keauhou", "line": "#2E7D32", "point": "#FFFFFF", "times": [320.47, 311.9, 299.71, 299.68]}, {"name": "Keaukaha", "line": "#4FC3F7", "point": "#D4AF37", "times": [285.12, 265.07, 267.81, 266.17]}, {"name": "Keōua Hōnaunau", "line": "#FFF176", "point": "#D32F2F", "times": [295.5, 295.59, 267.44, 273.86]}, {"name": "Na Waʻa Hanakahi", "line": "#D32F2F", "point": "#000000", "times": [278.81, 279.53, 302.47, 278.48]}, {"name": "Puna", "line": "#FBC02D", "point": "#2E7D32", "times": [296.83, 313.81, null, null]}]};
+const CHART = {"title": "Boys 16 & Under", "regattas": ["Kai ʻEhitu", "Keauhou", "Kai ʻŌpua", "Kailana"], "dates": ["05-16", "05-23", "06-06", "06-13"], "fastest": [225.27, 225.08, 233.77, 238.06], "slowest": [320.47, 313.81, 302.47, 299.68], "teams": [{"name": "Kawaihae", "line": "#D32F2F", "point": "#FFFFFF", "emphasize": true, "times": [256.3, 260.43, 255.18, 277.07]}, {"name": "Hui Waʻa ʻO Waiākea", "line": "#1565C0", "point": "#FBC02D", "times": [282.06, 275.34, 272.81, 268.48]}, {"name": "Kai ʻEhitu", "line": "#D32F2F", "point": "#FFFFFF", "dash": true, "times": [225.27, 225.08, 233.77, 238.06]}, {"name": "Kamehameha - Hilo", "line": "#CBB994", "point": "#D32F2F", "times": [286.87, 282.41, 275.74, 279.63]}, {"name": "Keauhou", "line": "#2E7D32", "point": "#FFFFFF", "times": [320.47, 311.9, 299.71, 299.68]}, {"name": "Keaukaha", "line": "#4FC3F7", "point": "#D4AF37", "times": [285.12, 265.07, 267.81, 266.17]}, {"name": "Keōua Hōnaunau", "line": "#FFF176", "point": "#D32F2F", "times": [295.5, 295.59, 267.44, 273.86]}, {"name": "Na Waʻa Hanakahi", "line": "#D32F2F", "point": "#000000", "times": [278.81, 279.53, 302.47, 278.48]}, {"name": "Puna", "line": "#FBC02D", "point": "#2E7D32", "times": [296.83, 313.81, null, null]}], "dqs": [null, null, null, null]};
 const THUMB = new URLSearchParams(location.search).has("thumb");
 function mmss(v){let m=Math.floor(v/60);let s=(v-m*60).toFixed(2).padStart(5,"0");return m+":"+s;}
 window.onload = function () {
@@ -21,19 +21,35 @@ window.onload = function () {
      pointStyle:false,fill:"-1",backgroundColor:"rgba(170,170,170,0.45)",order:100,spanGaps:true},
   ];
   const GREY = "#b3b3b3";
+  const dqs = CHART.dqs || [];
   const teams = CHART.teams.map(t => {
-    // In thumbnails: only Kawaihae (bold red); every other club is a thin grey line.
     const lc = THUMB ? (t.emphasize ? "#D32F2F" : GREY) : t.line;
+    if (!t.emphasize) {
+      return {
+        label:t.name, data:t.times,
+        borderColor:lc, backgroundColor:lc,
+        pointBackgroundColor:THUMB?lc:t.line, pointBorderColor:THUMB?lc:(t.point||"#555"),
+        pointBorderWidth:THUMB?0:2,
+        borderDash:(!THUMB && t.dash)?[6,4]:[],
+        borderWidth:THUMB?1:2,
+        pointRadius:THUMB?0:3, pointHoverRadius:5,
+        pointStyle:"circle", fill:false, spanGaps:false, order:1,
+      };
+    }
+    const dqIdx = new Set(dqs.map((d,i) => d!=null?i:-1).filter(i=>i>=0));
+    const data = t.times.map((v,i) => v!==null ? v : (dqs[i]!=null ? dqs[i][0] : null));
     return {
-      label:t.name, data:t.times,
+      label:t.name, data,
       borderColor:lc, backgroundColor:lc,
-      pointBackgroundColor:THUMB?lc:t.line, pointBorderColor:THUMB?lc:(t.point||"#555"),
-      pointBorderWidth:THUMB?0:2,
-      borderDash:(!THUMB && t.dash)?[6,4]:[],
-      borderWidth:t.emphasize?4:(THUMB?1:2),
-      pointRadius:THUMB?(t.emphasize?2:0):(t.emphasize?5:3),
-      pointHoverRadius:t.emphasize?7:5,
-      pointStyle:"circle", fill:false, spanGaps:false, order:t.emphasize?0:1,
+      pointBackgroundColor:data.map((v,i) => dqIdx.has(i) ? "transparent" : (THUMB?lc:t.line)),
+      pointBorderColor:data.map((v,i) => dqIdx.has(i) ? lc : (THUMB?lc:(t.point||"#555"))),
+      pointBorderWidth:data.map((v,i) => dqIdx.has(i) ? 2 : (THUMB?0:2)),
+      borderDash:[],
+      borderWidth:4,
+      pointRadius:data.map((v,i) => v===null?0 : dqIdx.has(i)?(THUMB?4:7):(THUMB?2:5)),
+      pointHoverRadius:data.map((v,i) => dqIdx.has(i)?9:7),
+      pointStyle:data.map((v,i) => dqIdx.has(i)?"crossRot":"circle"),
+      fill:false, spanGaps:false, order:0,
     };
   });
 
@@ -50,7 +66,7 @@ window.onload = function () {
         legend:{display:!THUMB, labels:{filter:i=>i.text!=="Fastest"&&i.text!=="Slowest"}},
         tooltip:{enabled:!THUMB, callbacks:{
           title:items=>CHART.regattas[items[0].dataIndex]+" ("+CHART.dates[items[0].dataIndex]+")",
-          label:c=>c.dataset.label+": "+mmss(c.parsed.y),
+          label:c=>{const d=(CHART.dqs||[])[c.dataIndex];const dq=c.dataset.order===0&&d!=null;return c.dataset.label+": "+mmss(c.parsed.y)+(dq?" ("+d[1]+")":"");},
         }},
       },
       scales:{
