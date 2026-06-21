@@ -28,7 +28,6 @@ import urllib.request
 BASE = "https://www.hcrapaddler.com/"
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WWW = os.path.join(ROOT, "docs")
-CACHE = os.path.join(ROOT, ".cache")
 
 # --- club flag color name -> hex -------------------------------------------------
 COLORMAP = {
@@ -44,21 +43,13 @@ PASTEL = {"Keiki": "#FFF4CC", "Men": "#D9E8FB", "Women": "#FBDCEC", "Mixed": "#D
 
 
 def fetch(url):
-    """Fetch a URL (with a small on-disk cache) and return text."""
-    os.makedirs(CACHE, exist_ok=True)
-    key = re.sub(r"[^A-Za-z0-9]+", "_", url)[:150] + ".html"
-    path = os.path.join(CACHE, key)
-    if os.path.exists(path):
-        return open(path, encoding="utf-8", errors="replace").read()
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (hcra-stats build)"})
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
-            txt = r.read().decode("utf-8", errors="replace")
+            return r.read().decode("utf-8", errors="replace")
     except Exception as exc:  # future regattas / lane sheets may 404
         print("  (fetch failed: %s -> %s)" % (url, exc))
-        txt = ""
-    open(path, "w", encoding="utf-8").write(txt)
-    return txt
+        return ""
 
 
 # --- scraping --------------------------------------------------------------------
