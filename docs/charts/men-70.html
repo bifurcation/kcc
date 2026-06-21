@@ -10,7 +10,7 @@
 <body>
 <div id="wrap"><canvas id="c" style="width:100%"></canvas></div>
 <script>
-const CHART = {"title": "Men (70)", "regattas": ["Kai ʻEhitu", "Keauhou", "Kai ʻŌpua", "Kailana"], "dates": ["05-16", "05-23", "06-06", "06-13"], "fastest": [274.59, 274.5, 265.59, 249.12], "slowest": [304.63, 280.46, 284.74, 277.12], "teams": [{"name": "Kai ʻEhitu", "line": "#D32F2F", "point": "#FFFFFF", "dash": true, "times": [281.28, 274.5, 269.92, 265.07]}, {"name": "Keauhou", "line": "#2E7D32", "point": "#FFFFFF", "times": [304.63, 280.46, 284.74, 277.12]}, {"name": "Keaukaha", "line": "#4FC3F7", "point": "#D4AF37", "times": [274.59, 275.23, 265.59, 249.12]}], "dqs": [null, null, null, null]};
+const CHART = {"title": "Men (70)", "regattas": ["Kai ʻEhitu", "Keauhou", "Kai ʻŌpua", "Kailana", "Keaukaha"], "dates": ["05-16", "05-23", "06-06", "06-13", "06-20"], "fastest": [274.59, 274.5, 265.59, 249.12, 262.33], "slowest": [304.63, 280.46, 284.74, 277.12, 269.01], "teams": [{"name": "Kai ʻEhitu", "line": "#D32F2F", "point": "#FFFFFF", "dash": true, "times": [281.28, 274.5, 269.92, 265.07, 268.44]}, {"name": "Keauhou", "line": "#2E7D32", "point": "#FFFFFF", "times": [304.63, 280.46, 284.74, 277.12, 269.01]}, {"name": "Keaukaha", "line": "#4FC3F7", "point": "#D4AF37", "times": [274.59, 275.23, 265.59, 249.12, 262.33]}], "dqs": [null, null, null, null, null]};
 const THUMB = new URLSearchParams(location.search).has("thumb");
 function mmss(v){let m=Math.floor(v/60);let s=(v-m*60).toFixed(2).padStart(5,"0");return m+":"+s;}
 window.onload = function () {
