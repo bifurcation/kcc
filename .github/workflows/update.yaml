@@ -22,9 +22,10 @@ jobs:
 
     - run: python3 build.py
 
-    - uses: EndBug/add-and-commit@v9
-      with:
-        add: 'docs'
-        author_name: Race Stats Bot
-        author_email: rlb@ipv.sx
-        message: 'Update race statistics'
+    - name: Commit and push updated docs
+      run: |
+        git config user.name "Race Stats Bot"
+        git config user.email "rlb@ipv.sx"
+        git add docs/
+        git diff --cached --quiet || git commit -m "Update race statistics"
+        git push

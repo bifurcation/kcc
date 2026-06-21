@@ -42,12 +42,14 @@ SECTIONS = ["Keiki", "Men", "Women", "Mixed"]
 PASTEL = {"Keiki": "#FFF4CC", "Men": "#D9E8FB", "Women": "#FBDCEC", "Mixed": "#DDF0DA"}
 
 
-def fetch(url):
+def fetch(url, required=False):
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"})
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             return r.read().decode("utf-8", errors="replace")
     except Exception as exc:  # future regattas / lane sheets may 404
+        if required:
+            sys.exit("fetch failed: %s -> %s" % (url, exc))
         print("  (fetch failed: %s -> %s)" % (url, exc))
         return ""
 
@@ -470,7 +472,7 @@ def main():
     no_thumbs = "--no-thumbs" in sys.argv
 
     print("Scraping main results page ...")
-    main_html = fetch(BASE + "hcra_results.php?year=2026")
+    main_html = fetch(BASE + "hcra_results.php?year=2026", required=True)
     regs = moku_regattas(main_html)
 
     # scrape each regatta; keep only those that actually have finisher times
